@@ -1,9 +1,29 @@
 server:
   port: 8082
+
 spring:
   application:
     name: shop-service
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/shop_db?useSSL=false&allowPublicKeyRetrieval=true
+    username: shop_user
+    password: shop_123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
