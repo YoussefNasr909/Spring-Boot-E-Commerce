@@ -6,6 +6,7 @@ import com.shop.youssef.shop_service.repository.OrderRepository;
 import com.shop.youssef.shop_service.service.OrderService;
 import com.shop.youssef.shop_service.web.dto.OrderDtos.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -28,21 +29,25 @@ public class OrderController {
     public ResponseEntity<?> create(@RequestBody CreateOrderRequest req) {
         try {
             Order saved = service.create(req);
-            URI location = URI.create("/shop/orders/" + saved.getId());
-            return ResponseEntity.created(location).body(toResponse(saved));
+            return ResponseEntity.created(URI.create("/shop/orders/" + saved.getId()))
+                    .body(toResponse(saved));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.internalServerError().body(ex.getMessage());
         }
     }
 
+    @Transactional(readOnly = true)
     @GetMapping
     public List<OrderResponse> list() {
-        return orders.findAllWithItems().stream().map(this::toResponse).toList();
+        return orders.findAll().stream().map(this::toResponse).toList();
     }
 
+    @Transactional(readOnly = true)
     @GetMapping("/{id}")
     public ResponseEntity<?> getOne(@PathVariable Long id) {
-        return orders.findByIdWithItems(id)
+        return orders.findById(id)
                 .<ResponseEntity<?>>map(o -> ResponseEntity.ok(toResponse(o)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -69,6 +74,7 @@ public class OrderController {
         }
     }
 
+    // ===== تحويل الكيانات إلى DTOs للرد =====
     private OrderResponse toResponse(Order o) {
         List<OrderItemResponse> items = o.getItems().stream()
                 .map(this::toItemResponse).toList();

@@ -4,23 +4,29 @@ server:
 spring:
   application:
     name: shop-service
-
   datasource:
     url: jdbc:mysql://localhost:3306/shop_db?useSSL=false&allowPublicKeyRetrieval=true
     username: shop_user
     password: shop_123
     driver-class-name: com.mysql.cj.jdbc.Driver
-
   jpa:
     hibernate:
-      ddl-auto: update
-    open-in-view: false
+      ddl-auto: update   # للتطوير فقط
     show-sql: false
+    open-in-view: false
 
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+
+# اختياري: مهلة بسيطة للـ Feign
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 2000
+        readTimeout: 3000
 
 management:
   endpoints:
