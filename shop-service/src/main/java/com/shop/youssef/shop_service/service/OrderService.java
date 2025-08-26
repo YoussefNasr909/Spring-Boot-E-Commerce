@@ -11,8 +11,11 @@ import com.shop.youssef.shop_service.model.OrderItem;
 import com.shop.youssef.shop_service.repository.OrderRepository;
 import com.shop.youssef.shop_service.web.dto.OrderDtos.CreateOrderRequest;
 import com.shop.youssef.shop_service.web.dto.OrderDtos.OrderItemRequest;
+import feign.FeignException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -33,28 +36,39 @@ public class OrderService {
 
     @Transactional
     public Order create(CreateOrderRequest req) {
-        // تحقق بسيط على المدخلات
+        // 0) تحقق بسيط من المدخلات
         if (req == null || req.customerEmail() == null || req.customerEmail().isBlank()
                 || req.items() == null || req.items().isEmpty() || req.walletId() == null) {
-            throw new IllegalArgumentException("customerEmail, walletId and items are required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "customerEmail, walletId and items are required");
         }
 
-        // 1) استعلم عن كل المنتجات المطلوبة من inventory (الكمية/السعر/sku/name)
+        // 1) استعلم عن المنتجات من inventory
         var stockReqs = req.items().stream()
                 .map(i -> new StockCheckRequest(i.productId(), i.quantity()))
                 .toList();
 
-        List<StockCheckResponse> stock = inventory.check(stockReqs);
+        final List<StockCheckResponse> stock;
+        try {
+            stock = inventory.check(stockReqs);
+        } catch (FeignException | IllegalStateException ex) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Inventory service unavailable. Please try again.", ex);
+        }
+
+        System.out.println("[SHOP] requested IDs = " +
+                stockReqs.stream().map(StockCheckRequest::productId).toList());
+        System.out.println("[SHOP] inventory IDs = " +
+                (stock == null ? "null" : stock.stream().map(StockCheckResponse::productId).toList()));
+
         if (stock == null || stock.isEmpty()) {
-            throw new IllegalArgumentException("Products not found in inventory");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Products not found in inventory");
         }
 
         Map<Long, StockCheckResponse> byProductId = new HashMap<>();
-        for (StockCheckResponse s : stock) {
-            byProductId.put(s.productId(), s);
-        }
+        for (StockCheckResponse s : stock) byProductId.put(s.productId(), s);
 
-        // 2) ابني الـ Order واحسب الإجمالي من الأسعار القادمة من الـ inventory
+        // 2) ابنِ الـOrder واحسب الإجمالي من أسعار الـinventory
         Order o = new Order();
         o.setCustomerEmail(req.customerEmail());
         o.setStatus("PENDING");
@@ -65,10 +79,12 @@ public class OrderService {
         for (OrderItemRequest it : req.items()) {
             StockCheckResponse info = byProductId.get(it.productId());
             if (info == null) {
-                throw new IllegalArgumentException("Product " + it.productId() + " not found");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Product " + it.productId() + " not found");
             }
             if (info.available() < it.quantity()) {
-                throw new IllegalArgumentException("Not enough stock for product " + it.productId());
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Not enough stock for product " + it.productId());
             }
 
             OrderItem oi = new OrderItem();
@@ -83,10 +99,15 @@ public class OrderService {
             total = total.add(oi.getLineTotal());
         }
 
-        // 3) اسحب المبلغ من المحفظة
-        wallet.withdraw(req.walletId(), new MoneyRequest(total));
+        // 3) اسحب الفلوس من المحفظة
+        try {
+            wallet.withdraw(req.walletId(), new MoneyRequest(total));
+        } catch (FeignException | IllegalStateException ex) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Wallet service unavailable. Please try again.", ex);
+        }
 
-        // 4) خصم المخزون؛ لو فشل، رجّع فلوس العميل وارمي خطأ
+        // 4) خصم المخزون؛ لو فشل → رجّع الفلوس وارمي 503
         var consumeReqs = req.items().stream()
                 .map(i -> new ConsumeRequest(i.productId(), i.quantity()))
                 .toList();
@@ -94,9 +115,10 @@ public class OrderService {
         try {
             inventory.consume(consumeReqs);
             o.setStatus("CONFIRMED");
-        } catch (Exception ex) {
-            wallet.deposit(req.walletId(), new MoneyRequest(total));
-            throw new IllegalStateException("Inventory consume failed, wallet refunded");
+        } catch (FeignException | IllegalStateException ex) {
+            try { wallet.deposit(req.walletId(), new MoneyRequest(total)); } catch (Exception ignore) {}
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Inventory consume failed, wallet refunded", ex);
         }
 
         o.setTotal(total);
@@ -105,35 +127,46 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public Order getById(Long id) {
-        return orders.findById(id).orElseThrow(() -> new NoSuchElementException("Order not found"));
-        // ملاحظة: القراءة هتتم تحت @Transactional من الكنترولر لتفادي Lazy
+        return orders.findById(id).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
     }
 
     @Transactional
     public Order update(Long id, CreateOrderRequest req) {
         if (req == null || req.customerEmail() == null || req.customerEmail().isBlank()
                 || req.items() == null || req.items().isEmpty()) {
-            throw new IllegalArgumentException("customerEmail and items are required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "customerEmail and items are required");
         }
 
-        // تبسيط: نعدّل البنود والإجمالي فقط (بدون تعامل مالي/مخزون في التعديل)
-        Order o = orders.findById(id).orElseThrow(() -> new NoSuchElementException("Order not found"));
+        Order o = orders.findById(id).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+
         o.setCustomerEmail(req.customerEmail());
         o.getItems().clear();
 
-        // إعادة حساب الإجمالي بالأسعار الحالية من الـ inventory
         var stockReqs = req.items().stream()
                 .map(i -> new StockCheckRequest(i.productId(), i.quantity()))
                 .toList();
-        var stock = inventory.check(stockReqs);
+
+        final List<StockCheckResponse> stock;
+        try {
+            stock = inventory.check(stockReqs);
+        } catch (FeignException | IllegalStateException ex) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Inventory service unavailable. Please try again.", ex);
+        }
+
         Map<Long, StockCheckResponse> byId = new HashMap<>();
         for (StockCheckResponse s : stock) byId.put(s.productId(), s);
 
         BigDecimal total = BigDecimal.ZERO;
         for (OrderItemRequest it : req.items()) {
-            var info = Optional.ofNullable(byId.get(it.productId()))
-                    .orElseThrow(() -> new IllegalArgumentException("Product " + it.productId() + " not found"));
-
+            var info = byId.get(it.productId());
+            if (info == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Product " + it.productId() + " not found");
+            }
             OrderItem oi = new OrderItem();
             oi.setOrder(o);
             oi.setSku(info.sku());
@@ -152,8 +185,9 @@ public class OrderService {
 
     @Transactional
     public void delete(Long id) {
-        if (!orders.existsById(id)) throw new NoSuchElementException("Order not found");
-        // تبسيط: حذف بدون رد مخزون/أموال (هييجي لاحقًا لو عايزين نكمّل سيناريو كامل)
+        if (!orders.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found");
+        }
         orders.deleteById(id);
     }
 }

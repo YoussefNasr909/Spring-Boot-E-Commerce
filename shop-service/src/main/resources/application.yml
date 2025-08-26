@@ -1,5 +1,7 @@
 server:
   port: 8082
+  error:
+    include-message: always
 
 spring:
   application:
@@ -14,13 +16,16 @@ spring:
       ddl-auto: update   # للتطوير فقط
     show-sql: false
     open-in-view: false
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true    # <— مهم: فعّل الـCircuit Breaker على Feign
 
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
 
-# اختياري: مهلة بسيطة للـ Feign
 feign:
   client:
     config:
@@ -32,4 +37,28 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health, info, metrics, circuitbreakers, circuitbreakerevents
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      inventory:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      wallet:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+  retry:
+    instances:
+      inventory:
+        maxAttempts: 2
+        waitDuration: 200ms
+      wallet:
+        maxAttempts: 2
+        waitDuration: 200ms
