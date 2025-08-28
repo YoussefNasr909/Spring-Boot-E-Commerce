@@ -4,3 +4,19 @@ server:
 spring:
   application:
     name: config-service
+  profiles:
+    active: git
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/YoussefNasr909/SpringBoot-ECom-config
+          default-label: main        # اسم الفرع
+          search-paths: config       # لأن ملفاتك داخل فولدر اسمه config
+          clone-on-start: true       # يكلون الريبو عند الإقلاع
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -4,26 +4,5 @@ server:
 spring:
   application:
     name: wallet-service
-
-  datasource:
-    url: jdbc:mysql://localhost:3306/wallet_db?useSSL=false&allowPublicKeyRetrieval=true
-    username: wallet_user
-    password: wallet_123
-    driver-class-name: com.mysql.cj.jdbc.Driver
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    open-in-view: false
-    show-sql: false
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
+  config:
+    import: "optional:configserver:http://localhost:8888"

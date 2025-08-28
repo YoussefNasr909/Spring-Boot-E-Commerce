@@ -1,64 +1,8 @@
 server:
   port: 8082
-  error:
-    include-message: always
 
 spring:
   application:
     name: shop-service
-  datasource:
-    url: jdbc:mysql://localhost:3306/shop_db?useSSL=false&allowPublicKeyRetrieval=true
-    username: shop_user
-    password: shop_123
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update   # للتطوير فقط
-    show-sql: false
-    open-in-view: false
-  cloud:
-    openfeign:
-      circuitbreaker:
-        enabled: true    # <— مهم: فعّل الـCircuit Breaker على Feign
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-
-feign:
-  client:
-    config:
-      default:
-        connectTimeout: 2000
-        readTimeout: 3000
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health, info, metrics, circuitbreakers, circuitbreakerevents
-
-resilience4j:
-  circuitbreaker:
-    instances:
-      inventory:
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
-        permittedNumberOfCallsInHalfOpenState: 3
-      wallet:
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
-        permittedNumberOfCallsInHalfOpenState: 3
-  retry:
-    instances:
-      inventory:
-        maxAttempts: 2
-        waitDuration: 200ms
-      wallet:
-        maxAttempts: 2
-        waitDuration: 200ms
+  config:
+    import: "optional:configserver:http://localhost:8888"

@@ -1,11 +1,15 @@
 package com.shop.youssef.shop_service.client;
 
-import com.shop.youssef.shop_service.client.dto.*;
+import com.shop.youssef.shop_service.client.dto.MoneyRequest;
+import com.shop.youssef.shop_service.client.dto.WalletResponse;
 import com.shop.youssef.shop_service.client.fallback.WalletClientFallback;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
-@FeignClient(name = "wallet-service", fallback = WalletClientFallback.class)
+@FeignClient(
+        name = "wallet-service",
+        fallback = WalletClientFallback.class // <-- مهم
+)
 public interface WalletClient {
 
     @PostMapping("/wallet/{walletId}/withdraw")
