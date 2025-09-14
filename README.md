@@ -204,4 +204,4 @@ curl -X POST http://localhost:8082/shop/orders \
 
 ## 📄 License
 
-This project is licensed under the **MIT License**. If you don’t have a `LICENSE` file yet, add one to the repo.
+This project is licensed under the **MIT License**.
