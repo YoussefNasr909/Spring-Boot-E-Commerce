@@ -1,98 +1,207 @@
-# 🛒 E-Commerce Microservices 
+# 🛒 Ecommerce API – Microservices Architecture
 
-## ✨ فكرة البروجيكت
+[![Java](https://img.shields.io/badge/Java-17-blue?logo=java\&logoColor=white)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen?logo=springboot\&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2023.x-green?logo=spring\&logoColor=white)](https://spring.io/projects/spring-cloud)
+[![MySQL](https://img.shields.io/badge/MySQL-8.x-blue?logo=mysql\&logoColor=white)](https://www.mysql.com/)
 
-المشروع ده E-Commerce معمول بـ **Spring Boot + Spring Cloud** على شكل **Microservices**.
-الـ**Shop Service** بتنسّق الأوردر: تسأل **Inventory** عن الأسعار والستوك، تسحب فلوس من **Wallet**، وبعدين تخصم الستوك. فيه **Gateway** بيعدّي كل الريكوستات، و**Eureka** للاكتشاف، و**Config Server** للكونفيج من GitHub. فيه **Circuit Breakers** و**Retry** عشان السيستم يبقى متماسك حتى لو فيه خدمة وقعت.
-
----
-
-## 🧩 السيرفزس
-
-* **API Gateway (8090)**
-  Entry point واحد. بيوزّع الريكوستات على الخدمات، وعليه خفيف **CircuitBreaker** على `/wallet` و`/inventory`.
-
-* **Shop Service (8082)**
-  الـOrchestrator. بيعمل الأوردر، يكلم **Wallet** و**Inventory** بـ **Feign**. فيه **Resilience4j** + **Compensation** (Refund لو خصمنا فلوس وبعدين الستوك فشل).
-
-* **Wallet Service (8081)**
-  فلوس العميل: **withdraw/deposit**. قاعدة بيانات منفصلة.
-
-* **Inventory Service (8083)**
-  منتجات وستوك: **check** (سعر+كمية) و**consume** (خصم/حجز). قاعدة بيانات منفصلة.
-
-* **Eureka (8761)**
-  Service Discovery. كل خدمة بتسجّل اسمها وهتلاقي الباقي بالـ name (lb://...).
-
-* **Config Server (8888)**
-  كونفيج مركزي من **GitHub repo** (`config/application.yml` + `config/*-service.yml`).
+A **microservices-based e‑commerce API** built with **Spring Boot**, **Spring Cloud Gateway**, **Eureka (Service Discovery)**, and **MySQL**. The system shows an end‑to‑end order workflow with fault tolerance using **Resilience4j**.
 
 ---
 
-## 🔄 الـWorkflow بتاع الأوردر
+## 🚀 Features
 
-1. **Client → Gateway**
-   العميل يبعت على `/shop/**`.
+* **API Gateway** for a single entry point and routing
+* **Service Discovery** with Eureka
+* **Separate Databases** per microservice
+* **Resilience4j** circuit breaker & retry on inter‑service calls (Shop → Wallet/Inventory)
+* **Clear Order Orchestration** in Shop Service (check stock → charge wallet → reserve stock → confirm)
 
-2. **Gateway → Shop**
-   الجيتواي يوجّه للـ **shop-service**.
-
-3. **Shop → Inventory (check)**
-   يشوف كل Product: **سعر + كمية متاحة**. الأسعار تيجي من Inventory (source of truth).
-
-4. **Shop → Wallet (withdraw)**
-   لو كله متاح، نسحب **الإجمالي** من محفظة العميل.
-
-5. **Shop → Inventory (consume)**
-   نخصم/نحجز الستوك فعليًا.
-
-6. **لو تمام** → الأوردر يبقى **CONFIRMED** ويتسجّل.
-
-7. **لو الستوك فشل بعد السحب** → **Compensation**: نعمل **Refund** للمحفظة ونرجّع Error مرتب.
-
-> ⛑️ **Resilience**:
->
-> * Shop فيه **CircuitBreaker + Retry** على مكالمات Feign.
-> * Gateway عنده **CircuitBreaker** على `/wallet` و`/inventory` عشان fallback ظريف لو الخدمات دي وقعت.
-> * `/shop/**` بنسيبه شفاف عشان يشوف الـclient الحقيقة من orchestrator.
+> Optional: a **Config Server** project is included; wire it up if you want centralized configuration.
 
 ---
 
-## 🕸️ شكل التواصل (Mermaid)
+## 🛠 Tech Stack
 
-```mermaid
-graph TD
-  C[Client] --> GW[API Gateway]
-  GW --> SHOP[Shop Service]
-  SHOP -->|Feign| WALLET[Wallet Service]
-  SHOP -->|Feign| INV[Inventory Service]
-  SHOP --- EUR[Eureka]
-  WALLET --- EUR
-  INV --- EUR
-  GW --- EUR
-  SHOP --> CFG[Config Server]
-  WALLET --> CFG
-  INV --> CFG
-  GW --> CFG
+* **Language:** Java 17
+* **Frameworks:** Spring Boot, Spring Cloud
+* **Service Discovery:** Eureka
+* **Gateway:** Spring Cloud Gateway
+* **Database:** MySQL (one DB per service)
+* **Build Tool:** Maven
+
+---
+
+## 🏗️ Architecture
+
+```text
+            +---------------------+
+            |   Config Server*    |
+            +---------------------+
+                     │
+                     ▼
+            +---------------------+
+            |  Eureka Discovery   |
+            +---------------------+
+                     ▲
+                     │
+           +---------------------+
+           |     API Gateway     |
+           +---------------------+
+         /          |          \
+        /           |           \
+       ▼            ▼            ▼
++----------------+  +----------------+  +----------------+
+|  Shop Service  |  | Inventory Svc  |  | Wallet Service |
++----------------+  +----------------+  +----------------+
+```
+
+\* *Config Server is present in the repo but not required to run the demo.*
+
+---
+
+## ⚙️ Prerequisites
+
+* Java **17+**
+* Maven **3.6+**
+* MySQL **8.x** (running locally)
+
+### MySQL setup (quick start)
+
+Create the three databases and users used by the services:
+
+```sql
+CREATE DATABASE wallet_db;      CREATE USER 'wallet_user'@'localhost' IDENTIFIED BY 'wallet_123';
+GRANT ALL PRIVILEGES ON wallet_db.* TO 'wallet_user'@'localhost';
+
+CREATE DATABASE inventory_db;   CREATE USER 'inventory_user'@'localhost' IDENTIFIED BY 'inventory_123';
+GRANT ALL PRIVILEGES ON inventory_db.* TO 'inventory_user'@'localhost';
+
+CREATE DATABASE shop_db;        CREATE USER 'shop_user'@'localhost' IDENTIFIED BY 'shop_123';
+GRANT ALL PRIVILEGES ON shop_db.* TO 'shop_user'@'localhost';
+FLUSH PRIVILEGES;
 ```
 
 ---
 
-## 📝 ملاحظات سريعة
+## ▶️ Run Locally
 
-* **DB per Service**: كل خدمة بقاعدتها؛ مفيش ربط سكيمات.
-* **Feign + Eureka**: مكالمات بالاسم مش بالـ IP.
-* **Config Server**: الكونفيج من GitHub (shared + per-service).
-* **Errors**:
+### 1) Clone
 
-  * **503**: خدمة تحتها مش متاحة (upstream down).
-  * **502**: الجيتواي مقدرش يكمل (timeouts/استجابة بايظة).
-* **Refund Logic**: لو الفلوس اتسحبت وبعدين الستوك وقع، بنعوّض فورًا.
+```bash
+git clone <your-repo-url>
+cd <your-repo-folder>
+```
+
+### 2) Start Core Infrastructure
+
+```bash
+# Eureka Discovery
+cd discovery-service/discovery-service
+mvn spring-boot:run
+```
+
+Optional: start Config Server if you plan to externalize configs.
+
+```bash
+cd ../../config-service/config-service
+mvn spring-boot:run
+```
+
+### 3) Start API Gateway
+
+```bash
+cd ../../api-gateway/api-gateway
+mvn spring-boot:run
+```
+
+### 4) Start Business Services (separate terminals)
+
+```bash
+# Shop Service
+cd ../../shop-service/shop-service
+mvn spring-boot:run
+
+# Inventory Service
+cd ../../inventory-service/inventory-service
+mvn spring-boot:run
+
+# Wallet Service
+cd ../../wallet-service/wallet-service
+mvn spring-boot:run
+```
 
 ---
 
-## ⚙️ باختصار المشروع ده إيه؟
+## 🔌 Default Ports
 
-سيستم صغير يورّيك **إزاي تعمل Order end-to-end** في Microservices:
-**Check → Charge → Reserve → Confirm**، ومعاه **حِماية** (Circuit Breakers/Retry) و**تعويض** (Refund) لو الدنيا كبّرت.
-سهل تتبعه، ويلمع في **مناقشة** أو **Portfolio** 👌
+| Service           | Port | Notes                                          |
+| ----------------- | ---- | ---------------------------------------------- |
+| Eureka Discovery  | 8761 | [http://localhost:8761](http://localhost:8761) |
+| Config Server\*   | 8888 | Optional                                       |
+| API Gateway       | 8090 | Single entry point                             |
+| Shop Service      | 8082 | Orchestrates orders                            |
+| Wallet Service    | 8081 | Wallet balance & transactions                  |
+| Inventory Service | 8083 | Products & stock                               |
+
+\* *Only needed if you wire services to it.*
+
+---
+
+## 🧪 Quick API Checks (via services)
+
+> You can also go through the API Gateway (path‑based routing) if configured to forward these prefixes.
+
+**Ping**
+
+```bash
+curl http://localhost:8081/wallet/ping
+curl http://localhost:8083/inventory/ping
+curl http://localhost:8082/shop/ping
+```
+
+**Wallet**
+
+```bash
+# Create a wallet
+curl -X POST http://localhost:8081/wallet/create \
+  -H "Content-Type: application/json" \
+  -d '{"ownerEmail":"john@example.com"}'
+
+# Deposit / Withdraw
+curl -X POST http://localhost:8081/wallet/1/deposit \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 200.00, "reference":"init"}'
+```
+
+**Inventory**
+
+```bash
+# Create a product
+curl -X POST http://localhost:8083/inventory/products \
+  -H "Content-Type: application/json" \
+  -d '{"sku":"SKU-1","name":"Phone","price":499.99,"quantity":10}'
+
+# Check + consume stock
+curl -X POST http://localhost:8083/inventory/stock/check \
+  -H "Content-Type: application/json" \
+  -d '{"productId":1, "quantity":2}'
+```
+
+**Shop (create order)**
+
+```bash
+curl -X POST http://localhost:8082/shop/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customerEmail":"john@example.com",
+    "walletId":1,
+    "items":[{"productId":1, "quantity":2}]
+  }'
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**. If you don’t have a `LICENSE` file yet, add one to the repo.
