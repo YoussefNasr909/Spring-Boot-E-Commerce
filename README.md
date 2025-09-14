@@ -1,4 +1,4 @@
-# 🛒 Ecommerce API – Microservices Architecture
+# 🛒 E-Commerce Microservices with Spring Boot & Spring Cloud
 
 [![Java](https://img.shields.io/badge/Java-17-blue?logo=java\&logoColor=white)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen?logo=springboot\&logoColor=white)](https://spring.io/projects/spring-boot)
