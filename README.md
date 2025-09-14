@@ -1,38 +1,43 @@
-# 🛒 E-Commerce Microservices with Spring Boot & Spring Cloud
+# ⚡️ E‑Commerce Microservices (Spring Boot & Spring Cloud)
 
-[![Java](https://img.shields.io/badge/Java-17-blue?logo=java\&logoColor=white)](https://www.oracle.com/java/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen?logo=springboot\&logoColor=white)](https://spring.io/projects/spring-boot)
-[![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2023.x-green?logo=spring\&logoColor=white)](https://spring.io/projects/spring-cloud)
-[![MySQL](https://img.shields.io/badge/MySQL-8.x-blue?logo=mysql\&logoColor=white)](https://www.mysql.com/)
+[![Java](https://img.shields.io/badge/Java-17-007396?logo=java\&logoColor=white\&style=for-the-badge)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F?logo=springboot\&logoColor=white\&style=for-the-badge)](https://spring.io/projects/spring-boot)
+[![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2023.x-6DB33F?logo=spring\&logoColor=white\&style=for-the-badge)](https://spring.io/projects/spring-cloud)
+[![MySQL](https://img.shields.io/badge/MySQL-8.x-4479A1?logo=mysql\&logoColor=white\&style=for-the-badge)](https://www.mysql.com/)
+[![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker\&logoColor=white\&style=for-the-badge)](https://www.docker.com/)
 
-A **microservices-based e‑commerce API** built with **Spring Boot**, **Spring Cloud Gateway**, **Eureka (Service Discovery)**, and **MySQL**. The system shows an end‑to‑end order workflow with fault tolerance using **Resilience4j**.
-
----
-
-## 🚀 Features
-
-* **API Gateway** for a single entry point and routing
-* **Service Discovery** with Eureka
-* **Separate Databases** per microservice
-* **Resilience4j** circuit breaker & retry on inter‑service calls (Shop → Wallet/Inventory)
-* **Clear Order Orchestration** in Shop Service (check stock → charge wallet → reserve stock → confirm)
-
-> Optional: a **Config Server** project is included; wire it up if you want centralized configuration.
+**Modular, resilient e‑commerce backend** showcasing microservices with **Spring Boot** & **Spring Cloud**. It implements a production‑style order flow (**Check → Charge → Reserve → Confirm**) with **API Gateway routing**, **Eureka service discovery**, and **Resilience4j** for fault tolerance. Clean developer experience with runnable curl tests & Postman.
 
 ---
 
-## 🛠 Tech Stack
+## ✨ Key Features
 
-* **Language:** Java 17
-* **Frameworks:** Spring Boot, Spring Cloud
-* **Service Discovery:** Eureka
-* **Gateway:** Spring Cloud Gateway
-* **Database:** MySQL (one DB per service)
-* **Build Tool:** Maven
+* **API Gateway** for unified entry & routing
+* **Service Discovery** with **Eureka**
+* **DB‑per‑service** isolation (Shop, Inventory, Wallet)
+* **Resilience4j** circuit breaker & retry on inter‑service calls
+* Clear **order orchestration** in Shop (check stock → charge wallet → reserve stock → confirm)
+* Optional **Config Server** for centralized configuration
 
 ---
 
-## 🏗️ Architecture
+## 🧱 Built With
+
+This section lists primary frameworks/libraries used to bootstrap the project.
+
+* [![Java 17](https://img.shields.io/badge/Java-17-007396?logo=java\&logoColor=white\&style=for-the-badge)](https://www.oracle.com/java/)
+* [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F?logo=springboot\&logoColor=white\&style=for-the-badge)](https://spring.io/projects/spring-boot)
+* [![Spring Cloud Gateway](https://img.shields.io/badge/Spring%20Cloud-Gateway-6DB33F?logo=spring\&logoColor=white\&style=for-the-badge)](https://spring.io/projects/spring-cloud-gateway)
+* [![Eureka](https://img.shields.io/badge/Spring%20Cloud-Eureka-6DB33F?logo=spring\&logoColor=white\&style=for-the-badge)](https://spring.io/projects/spring-cloud)
+* [![Resilience4j](https://img.shields.io/badge/Resilience4j-Fault%20Tolerance-0A84FF?style=for-the-badge)](https://resilience4j.readme.io/)
+* [![MySQL](https://img.shields.io/badge/MySQL-8.x-4479A1?logo=mysql\&logoColor=white\&style=for-the-badge)](https://www.mysql.com/)
+* [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker\&logoColor=white\&style=for-the-badge)](https://www.docker.com/)
+* [![Maven](https://img.shields.io/badge/Maven-Build-C71A36?logo=apachemaven\&logoColor=white\&style=for-the-badge)](https://maven.apache.org/)
+* [![OpenAPI](https://img.shields.io/badge/OpenAPI%2FSwagger-Docs-85EA2D?logo=swagger\&logoColor=black\&style=for-the-badge)](https://swagger.io/specification/)
+
+---
+
+## 🗺️ Architecture
 
 ```text
             +---------------------+
@@ -56,17 +61,17 @@ A **microservices-based e‑commerce API** built with **Spring Boot**, **Spring 
 +----------------+  +----------------+  +----------------+
 ```
 
-\* *Config Server is present in the repo but not required to run the demo.*
+*Config Server exists in the repo but isn’t required to run the demo.*
 
 ---
 
-## ⚙️ Prerequisites
+## 🧰 Prerequisites
 
 * Java **17+**
 * Maven **3.6+**
 * MySQL **8.x** (running locally)
 
-### MySQL setup (quick start)
+### MySQL quick setup
 
 Create the three databases and users used by the services:
 
@@ -84,7 +89,7 @@ FLUSH PRIVILEGES;
 
 ---
 
-## ▶️ Run Locally
+## ▶️ Quickstart (Run Locally)
 
 ### 1) Clone
 
@@ -144,11 +149,11 @@ mvn spring-boot:run
 | Wallet Service    | 8081 | Wallet balance & transactions                  |
 | Inventory Service | 8083 | Products & stock                               |
 
-\* *Only needed if you wire services to it.*
+*Only needed if you wire services to it.*
 
 ---
 
-## 🧪 Quick API Checks (via services)
+## 🧪 Smoke Tests (Quick API Checks)
 
 > You can also go through the API Gateway (path‑based routing) if configured to forward these prefixes.
 
@@ -202,6 +207,6 @@ curl -X POST http://localhost:8082/shop/orders \
 
 ---
 
-## 📄 License
+## 📝 License
 
-This project is licensed under the **MIT License** - feel free to use, modify, and distribute.
+This project is licensed under the **MIT License** — feel free to use, modify, and distribute.
